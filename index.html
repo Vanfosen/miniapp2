@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Мини-календарь турниров</title>
+<style>
+body { font-family:sans-serif; background:#1a1410; color:#fdf1d6; padding:10px; }
+.day { padding:5px; border:1px solid #d0b586; margin:2px; cursor:pointer; }
+.event { background:#e3c89a; color:#1a1410; padding:2px; margin-top:2px; border-radius:3px; cursor:pointer; }
+.modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); justify-content:center; align-items:center; }
+.modal-content { background:#2a1f18; padding:20px; border-radius:10px; width:90%; max-width:300px; }
+.input-field, .submit-btn { width:100%; margin-top:5px; padding:5px; }
+</style>
+</head>
+<body>
+<h3>Турниры этого месяца</h3>
+<div id="calendar"></div>
+
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <span id="close" style="cursor:pointer;float:right;">&times;</span>
+    <h4 id="modalTitle"></h4>
+    <p>Дата: <span id="modalDate"></span></p>
+    <p>Время: <span id="modalTime"></span></p>
+    <p>Локация: <span id="modalLocation"></span></p>
+    <p>Стоимость: <span id="modalPrice"></span></p>
+    <p>Статус: <span id="modalStatus"></span></p>
+    <input type="text" id="telegram" class="input-field" placeholder="@Telegram">
+    <button id="send" class="submit-btn">Записаться</button>
+    <div id="msg"></div>
+  </div>
+</div>
+
+<script>
+const SPREADSHEET_ID = '1z7S5kPiXKtsIdEi9HD7O-b-YasXNVEBu0MWGJqSLqro';
+const SPREADSHEET_GID = '1462695068';
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby8cpOH0WcQa6i9u_qnGdMMbEXOIDA05udBN6WpgTRSLk6WRMwz3AySPmWFA1nCwCpZ/exec';
+
+let events=[];
+let currentEvent=null;
+
+// загрузка CSV
+async function loadEvents(){
+    const url=`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${SPREADSHEET_GID}`;
+    const res=await fetch(url);
+    const text=await res.text();
+    const rows=text.split(/\r?\n/).map(r=>r.split(',').map(c=>c.trim()));
+    events=[];
+    for(let i=1;i<rows.length;i++){
+        const r=rows[i];
+        if(r.length<2) continue;
+        const d=r[0].match(/(\d{2})\.(\d{2})\.(\d{4})/);
+        if(!d) continue;
+        events.push({
+            day:parseInt(d[1],10),
+            month:parseInt(d[2],10)-1,
+            year:parseInt(d[3],10),
+            name:r[1],
+            time:r[2],
+            location:r[3],
+            price:r[4],
+            status:r[5]
+        });
+    }
+    renderCalendar();
+}
+
+function renderCalendar(){
+    const container=document.getElementById('calendar');
+    const now=new Date();
+    const month=now.getMonth();
+    const year=now.getFullYear();
+    const daysInMonth=new Date(year,month+1,0).getDate();
+    container.innerHTML='';
+    for(let d=1;d<=daysInMonth;d++){
+        const dayDiv=document.createElement('div');
+        dayDiv.className='day';
+        dayDiv.innerHTML=`${d}`;
+        const evs=events.filter(e=>e.day===d && e.month===month && e.year===year);
+        evs.forEach((ev,i)=>{
+            const eDiv=document.createElement('div');
+            eDiv.className='event';
+            eDiv.innerText=ev.name;
+            eDiv.onclick=()=>openModal(ev);
+            dayDiv.appendChild(eDiv);
+        });
+        container.appendChild(dayDiv);
+    }
+}
+
+// попап
+const modal=document.getElementById('modal');
+document.getElementById('close').onclick=()=>{modal.style.display='none';};
+function openModal(ev){
+    currentEvent=ev;
+    document.getElementById('modalTitle').innerText=ev.name;
+    document.getElementById('modalDate').innerText=`${String(ev.day).padStart(2,'0')}.${String(ev.month+1).padStart(2,'0')}.${ev.year}`;
+    document.getElementById('modalTime').innerText=ev.time;
+    document.getElementById('modalLocation').innerText=ev.location;
+    document.getElementById('modalPrice').innerText=ev.price;
+    document.getElementById('modalStatus').innerText=ev.status;
+    document.getElementById('telegram').value='';
+    document.getElementById('msg').innerText='';
+    modal.style.display='flex';
+}
+
+// отправка Telegram
+document.getElementById('send').onclick=async()=>{
+    const tg=document.getElementById('telegram').value.trim();
+    if(!tg.startsWith('@')) {document.getElementById('msg').innerText='Введите корректный Telegram'; return;}
+    const payload={ date:`${String(currentEvent.day).padStart(2,'0')}.${String(currentEvent.month+1).padStart(2,'0')}`, eventName:currentEvent.name, telegram:tg };
+    document.getElementById('msg').innerText='Отправка...';
+    try{
+        const res=await fetch(WEB_APP_URL,{method:'POST',body:JSON.stringify(payload),headers:{'Content-Type':'text/plain'}});
+        const data=await res.json();
+        if(data.success){document.getElementById('msg').innerText='✅ Вы записаны!'; setTimeout(()=>modal.style.display='none',1000);}
+        else{document.getElementById('msg').innerText='❌ Ошибка: '+(data.error||'');}
+    }catch(err){document.getElementById('msg').innerText='❌ Ошибка: '+err.message;}
+}
+
+// старт
+loadEvents();
+</script>
+</body>
+</html>
