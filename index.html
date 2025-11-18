@@ -2,124 +2,306 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Мини-календарь турниров</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Запись на турниры</title>
 <style>
-body { font-family:sans-serif; background:#1a1410; color:#fdf1d6; padding:10px; }
-.day { padding:5px; border:1px solid #d0b586; margin:2px; cursor:pointer; }
-.event { background:#e3c89a; color:#1a1410; padding:2px; margin-top:2px; border-radius:3px; cursor:pointer; }
-.modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); justify-content:center; align-items:center; }
-.modal-content { background:#2a1f18; padding:20px; border-radius:10px; width:90%; max-width:300px; }
-.input-field, .submit-btn { width:100%; margin-top:5px; padding:5px; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#1a1410; min-height:100vh; color:#fdf1d6; }
+.container { max-width:1100px; margin:0 auto; padding:20px; }
+.header { display:flex; justify-content:center; align-items:center; margin-bottom:30px; padding-bottom:20px; border-bottom:2px solid rgba(217,176,108,0.3); }
+.navigation { display:flex; gap:25px; align-items:center; }
+.nav-btn { background: linear-gradient(135deg,#e3c89a 0%,#d0b586 100%); color:#1a1410; border:none; padding:12px 28px; border-radius:20px; cursor:pointer; font-size:1.1em; font-weight:600; transition: all 0.3s ease; box-shadow:0 4px 15px rgba(208,181,134,0.4); }
+.nav-btn:hover { transform:translateY(-3px); box-shadow:0 8px 30px rgba(208,181,134,0.6); }
+.nav-btn:active { transform:translateY(-1px); }
+.current-month { font-size:1.6em; font-weight:bold; background: linear-gradient(135deg,#e3c89a 0%,#d0b586 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; min-width:250px; text-align:center; }
+.calendar { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; background:#1a1410; border-radius:12px; padding:20px; border:2px solid rgba(217,176,108,0.4); }
+.weekday-header { background: linear-gradient(135deg,#e3c89a 0%,#d0b586 100%); color:#1a1410; padding:12px; text-align:center; font-weight:600; font-size:1em; border-radius:8px; box-shadow:0 2px 10px rgba(208,181,134,0.3); }
+.weekend-header { background: linear-gradient(135deg,#d0b586 0%,#bfa06e 100%); }
+.day-cell { background: rgba(208,181,134,0.05); min-height:85px; padding:0; position:relative; border-radius:12px; border:1px solid rgba(217,176,108,0.2); transition: all 0.3s ease; overflow:hidden; display:flex; align-items:flex-start; justify-content:flex-start; }
+.day-cell:hover { background: rgba(208,181,134,0.15); border-color: rgba(217,176,108,0.4); }
+.day-cell.other-month { background: rgba(217,176,108,0.05); opacity:0.4; border:1px solid rgba(208,181,134,0.2);}
+.day-cell.weekend { background: rgba(208,146,96,0.15); border:1px solid rgba(208,146,96,0.35);}
+.day-number { font-size:1.1em; font-weight:bold; color:#fdf1d6; position:absolute; top:8px; left:10px; z-index:2; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+.day-cell.other-month .day-number { color:#bfa06e; }
+.event-badge { color:#1a1410; font-size:0.85em; font-weight:600; text-align:center; word-wrap:break-word; line-height:1.3; box-shadow:0 3px 10px rgba(0,0,0,0.2); cursor:pointer; transition: all 0.2s ease; position:absolute; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; border-radius:10px; white-space: normal; word-break: break-word; padding:5px; }
+.event-badge:hover { transform: scale(1.03); box-shadow:0 5px 15px rgba(0,0,0,0.3); z-index:1; }
+.modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color: rgba(0,0,0,0.75); backdrop-filter: blur(8px); animation:fadeIn 0.3s ease; }
+@keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+@keyframes slideUp { from{opacity:0; transform:translate(-50%,-45%) scale(0.95);} to{opacity:1; transform:translate(-50%,-50%) scale(1);} }
+.modal-content { background: linear-gradient(160deg,#1f1812 0%,#2a1f18 100%); margin:auto; padding:0; border:2px solid rgba(227,200,154,0.4); border-radius:24px; width:90%; max-width:520px; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); box-shadow:0 25px 80px rgba(0,0,0,0.9); animation:slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.modal-header { background: linear-gradient(135deg,#e3c89a 0%,#d0b586 100%); padding:28px 35px; border-radius:22px 22px 0 0; position:relative; box-shadow: 0 2px 20px rgba(227,200,154,0.3); }
+.modal-title { color:#1a1410; font-size:1.7em; font-weight:700; margin:0; letter-spacing: -0.5px; }
+.close { color:#1a1410; position:absolute; right:25px; top:50%; transform:translateY(-50%); font-size:30px; font-weight:700; cursor:pointer; transition: all 0.3s ease; width:38px; height:38px; display:flex; align-items:center; justify-content:center; border-radius:50%; line-height: 1; }
+.close:hover { background: rgba(26,20,16,0.15); transform:translateY(-50%) rotate(90deg); }
+.modal-body { padding:35px; }
+.modal-info-section { background: rgba(227,200,154,0.08); padding: 20px; border-radius: 16px; border: 1px solid rgba(227,200,154,0.2); margin-bottom: 25px; }
+.modal-info-label { color:#bfa06e; font-size:0.95em; margin-bottom:8px; font-weight: 500; letter-spacing: 0.3px; }
+.modal-info-value { color:#fdf1d6; font-size:1.3em; font-weight:700; letter-spacing: -0.3px; }
+.form-group { margin-bottom: 25px; }
+.form-label { color:#d0b586; font-size:1.05em; font-weight:600; margin-bottom:12px; display:block; letter-spacing: 0.2px; }
+.input-field { width: 100%; padding: 16px 20px; font-size: 1.15em; border: 2px solid rgba(217,176,108,0.3); border-radius: 14px; background: rgba(227,200,154,0.05); color: #fdf1d6; outline: none; transition: all 0.3s ease; font-weight: 500; }
+.input-field:focus { border-color: #e3c89a; background: rgba(227,200,154,0.12); box-shadow: 0 0 0 4px rgba(227,200,154,0.1); }
+.input-field::placeholder { color: rgba(191,160,110,0.6); }
+.register-btn, .submit-btn { background: linear-gradient(135deg,#e3c89a 0%,#d0b586 100%); color:#1a1410; border:none; padding:17px 40px; border-radius:14px; font-size:1.15em; font-weight:700; cursor:pointer; transition: all 0.3s ease; box-shadow:0 6px 25px rgba(208,181,134,0.45); width:100%; margin-top:10px; text-align:center; letter-spacing: 0.3px; }
+.register-btn:hover, .submit-btn:hover { transform:translateY(-2px); box-shadow:0 10px 35px rgba(208,181,134,0.65); }
+.register-btn:active, .submit-btn:active { transform:translateY(0); }
+.submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.back-btn { background: transparent; color: #d0b586; border: 2px solid rgba(208,181,134,0.3); padding: 14px 30px; border-radius: 14px; font-size: 1.05em; font-weight: 600; cursor: pointer; margin-top: 15px; width: 100%; transition: all 0.3s ease; letter-spacing: 0.2px; }
+.back-btn:hover { background: rgba(208,181,134,0.1); border-color: rgba(208,181,134,0.5); color: #fdf1d6; }
+.loading { text-align:center; padding:40px; color:#d0b586; font-size:1.2em; }
+.error { background: rgba(208,146,96,0.2); color: #e3c89a; padding:20px; border-radius:10px; margin:20px 0; border:1px solid rgba(208,146,96,0.3); }
+.modal-view { display: none; }
+.success-message { background: rgba(139,195,74,0.15); color: #c5e1a5; padding: 16px 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(139,195,74,0.3); font-weight: 500; text-align: center; }
+.error-message { background: rgba(244,67,54,0.15); color: #ef9a9a; padding: 16px 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(244,67,54,0.3); font-weight: 500; text-align: center; }
+@media (max-width:768px){ .container { padding:15px; } .header { flex-direction:column; gap:15px; } .calendar { font-size:0.85em; gap:5px; padding:16px; } .day-cell { min-height:65px; } .nav-btn { padding:10px 20px; font-size:1em; } .current-month { font-size:1.3em; } .modal-content { width:95%; } .modal-body { padding:25px; } .modal-title { font-size:1.4em; } }
 </style>
 </head>
 <body>
-<h3>Турниры этого месяца</h3>
-<div id="calendar"></div>
+<div class="container">
+    <div class="header">
+        <div class="navigation">
+            <button class="nav-btn" id="prevMonth">← Назад</button>
+            <div class="current-month" id="currentMonth"></div>
+            <button class="nav-btn" id="nextMonth">Вперед →</button>
+        </div>
+    </div>
+    <div id="calendarContainer"><div class="loading">Загрузка расписания...</div></div>
+</div>
 
-<div class="modal" id="modal">
-  <div class="modal-content">
-    <span id="close" style="cursor:pointer;float:right;">&times;</span>
-    <h4 id="modalTitle"></h4>
-    <p>Дата: <span id="modalDate"></span></p>
-    <p>Время: <span id="modalTime"></span></p>
-    <p>Локация: <span id="modalLocation"></span></p>
-    <p>Стоимость: <span id="modalPrice"></span></p>
-    <p>Статус: <span id="modalStatus"></span></p>
-    <input type="text" id="telegram" class="input-field" placeholder="@Telegram">
-    <button id="send" class="submit-btn">Записаться</button>
-    <div id="msg"></div>
-  </div>
+<div id="eventModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modalTitle"></h2>
+            <span class="close" id="closeModal">&times;</span>
+        </div>
+        <div class="modal-body">
+          <div id="modalViewInfo" class="modal-view">
+            <div class="modal-info-section">
+              <div class="modal-info-label">Дата турнира</div>
+              <div class="modal-info-value" id="modalDate"></div>
+            </div>
+            <button id="openFormBtn" class="register-btn">Записаться на турнир</button>
+          </div>
+          <div id="modalViewForm" class="modal-view">
+            <div id="formMessage"></div>
+            <div class="form-group">
+              <label class="form-label" for="telegramInput">Ваш Telegram</label>
+              <input type="text" id="telegramInput" class="input-field" placeholder="@username" autocomplete="off" />
+            </div>
+            <button id="submitFormBtn" class="submit-btn">Подтвердить регистрацию</button>
+            <button id="backToInfoBtn" class="back-btn">← Назад</button>
+          </div>
+        </div>
+    </div>
 </div>
 
 <script>
-const SPREADSHEET_ID = '1z7S5kPiXKtsIdEi9HD7O-b-YasXNVEBu0MWGJqSLqro';
-const SPREADSHEET_GID = '1462695068';
+// === КОНФИГУРАЦИЯ ===
+const CALENDAR_SPREADSHEET_ID = '1z7S5kPiXKtsIdEi9HD7O-b-YasXNVEBu0MWGJqSLqro';
+const CALENDAR_GID = '1462695068';
 const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby8cpOH0WcQa6i9u_qnGdMMbEXOIDA05udBN6WpgTRSLk6WRMwz3AySPmWFA1nCwCpZ/exec';
 
-let events=[];
-let currentEvent=null;
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let allEvents = [];
+let eventStore = {};
+let currentEvent = null;
 
-// загрузка CSV
-async function loadEvents(){
-    const url=`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${SPREADSHEET_GID}`;
-    const res=await fetch(url);
-    const text=await res.text();
-    const rows=text.split(/\r?\n/).map(r=>r.split(',').map(c=>c.trim()));
-    events=[];
-    for(let i=1;i<rows.length;i++){
-        const r=rows[i];
-        if(r.length<2) continue;
-        const d=r[0].match(/(\d{2})\.(\d{2})\.(\d{4})/);
-        if(!d) continue;
-        events.push({
-            day:parseInt(d[1],10),
-            month:parseInt(d[2],10)-1,
-            year:parseInt(d[3],10),
-            name:r[1],
-            time:r[2],
-            location:r[3],
-            price:r[4],
-            status:r[5]
-        });
+const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const weekDays = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+
+// === МОДАЛЬНОЕ ОКНО ===
+const modal = document.getElementById('eventModal');
+const closeBtn = document.getElementById('closeModal');
+const modalViewInfo = document.getElementById('modalViewInfo');
+const modalViewForm = document.getElementById('modalViewForm');
+const telegramInput = document.getElementById('telegramInput');
+const openFormBtn = document.getElementById('openFormBtn');
+const submitFormBtn = document.getElementById('submitFormBtn');
+const backToInfoBtn = document.getElementById('backToInfoBtn');
+const formMessage = document.getElementById('formMessage');
+
+closeBtn.onclick = () => { modal.style.display = 'none'; resetForm(); };
+window.onclick = (e) => { if(e.target === modal) { modal.style.display = 'none'; resetForm(); } };
+
+function resetForm() {
+    telegramInput.value = '';
+    formMessage.innerHTML = '';
+    modalViewForm.style.display = 'none';
+    modalViewInfo.style.display = 'block';
+    submitFormBtn.disabled = false;
+    submitFormBtn.textContent = 'Подтвердить регистрацию';
+}
+
+openFormBtn.onclick = () => {
+    if(!currentEvent) return;
+    modalViewInfo.style.display = 'none';
+    modalViewForm.style.display = 'block';
+    formMessage.innerHTML = '';
+    setTimeout(() => telegramInput.focus(), 100);
+};
+
+backToInfoBtn.onclick = () => resetForm();
+
+// === ОТПРАВКА JSON ===
+submitFormBtn.onclick = async () => {
+    const tg = telegramInput.value.trim();
+    if(!tg.startsWith('@') || tg.length < 3) {
+        formMessage.innerHTML = '<div class="error-message">Введите корректный Telegram (например: @username)</div>';
+        telegramInput.focus();
+        return;
     }
+    const dateShort = `${String(currentEvent.day).padStart(2,'0')}.${String(currentEvent.month+1).padStart(2,'0')}`;
+    const payload = { date: dateShort, eventName: currentEvent.name, telegram: tg };
+    submitFormBtn.disabled = true;
+    submitFormBtn.textContent = 'Отправка...';
+    formMessage.innerHTML = '';
+
+    try {
+        const response = await fetch(WEB_APP_URL, {
+            method: 'POST',
+            headers: { 'Content-Type':'text/plain' },
+            body: JSON.stringify(payload)
+        });
+        if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const result = await response.json();
+        if(result.success) {
+            formMessage.innerHTML = '<div class="success-message">✅ Вы успешно зарегистрированы на турнир!</div>';
+            setTimeout(() => { modal.style.display = 'none'; resetForm(); }, 2500);
+        } else {
+            formMessage.innerHTML = `<div class="error-message">❌ ${result.error || 'Ошибка регистрации'}</div>`;
+            submitFormBtn.disabled = false;
+            submitFormBtn.textContent = 'Подтвердить регистрацию';
+        }
+    } catch(err) {
+        console.error(err);
+        formMessage.innerHTML = `<div class="error-message">❌ Ошибка: ${err.message}</div>`;
+        submitFormBtn.disabled = false;
+        submitFormBtn.textContent = 'Подтвердить регистрацию';
+    }
+};
+
+// === ОТКРЫТИЕ МОДАЛЬНОГО ОКНА ===
+window.showEventModal = function(eventId) {
+    const event = eventStore[eventId];
+    if(!event) return;
+    currentEvent = event;
+    document.getElementById('modalTitle').textContent = event.name;
+    document.getElementById('modalDate').textContent = `${String(event.day).padStart(2,'0')}.${String(event.month+1).padStart(2,'0')}.${event.year}`;
+    resetForm();
+    modal.style.display = 'block';
+};
+
+// === ЗАГРУЗКА СОБЫТИЙ ===
+async function loadEvents() {
+    try {
+        const url = `https://docs.google.com/spreadsheets/d/${CALENDAR_SPREADSHEET_ID}/export?format=csv&gid=${CALENDAR_GID}`;
+        const response = await fetch(url);
+        if(!response.ok) throw new Error('Ошибка загрузки данных');
+        let csvText = await response.text();
+        csvText = csvText.replace(/^\uFEFF/, '');
+        const rows = csvText.split(/\r?\n/).map(row =>
+            row.split(',').map(cell => cell.trim().replace(/^"|"$/g, ''))
+        );
+
+        allEvents = [];
+        for(let i=1; i<rows.length; i++){
+            const row = rows[i];
+            if(row.length < 2) continue;
+            const dateStr = row[0];
+            const eventName = row[1];
+            const bgColor = row[4] || '#e3c89a';
+            if(!dateStr || !eventName) continue;
+            const dateParts = dateStr.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+            if(!dateParts) continue;
+            allEvents.push({
+                day: parseInt(dateParts[1],10),
+                month: parseInt(dateParts[2],10)-1,
+                year: parseInt(dateParts[3],10),
+                name: eventName,
+                color: bgColor
+            });
+        }
+
+        if(allEvents.length === 0){
+            document.getElementById('calendarContainer').innerHTML = '<div class="error">⚠️ Данные загружены, но событий не найдено. Проверьте формат таблицы.</div>';
+        } else {
+            renderCalendar();
+        }
+    } catch(err) {
+        console.error(err);
+        document.getElementById('calendarContainer').innerHTML = `<div class="error">❌ Ошибка загрузки: ${err.message}</div>`;
+    }
+}
+
+// === РЕНДЕР КАЛЕНДАРЯ ===
+function renderCalendar() {
+    document.getElementById('currentMonth').textContent = `${monthNames[currentMonth]} ${currentYear}`;
+    const firstDay = new Date(currentYear, currentMonth,1);
+    const lastDay = new Date(currentYear, currentMonth+1,0);
+    const prevLastDay = new Date(currentYear, currentMonth,0);
+    let startDayOfWeek = firstDay.getDay();
+    if(startDayOfWeek===0) startDayOfWeek=7;
+    startDayOfWeek-=1;
+    const daysInMonth = lastDay.getDate();
+    const prevDaysInMonth = prevLastDay.getDate();
+    let html = '<div class="calendar">';
+    weekDays.forEach((day,idx)=>{
+        const isWeekend = idx>=5;
+        html += `<div class="weekday-header ${isWeekend?'weekend-header':''}">${day}</div>`;
+    });
+
+    eventStore = {};
+    let eventIdCounter=0;
+
+    // Дни предыдущего месяца
+    for(let i=startDayOfWeek-1;i>=0;i--){
+        const day = prevDaysInMonth-i;
+        html += `<div class="day-cell other-month"><span class="day-number">${day}</span></div>`;
+    }
+
+    // Дни текущего месяца
+    for(let day=1;day<=daysInMonth;day++){
+        const dayOfWeek = (startDayOfWeek+day-1)%7;
+        const isWeekend = dayOfWeek>=5;
+        const eventsForDay = allEvents.filter(e => e.day===day && e.month===currentMonth && e.year===currentYear);
+
+        let eventHtml = '';
+        eventsForDay.forEach(event=>{
+            const eventId = `event_${eventIdCounter++}`;
+            eventStore[eventId] = event;
+            eventHtml += `<div class="event-badge" style="background:${event.color};" onclick="showEventModal('${eventId}')">${event.name}</div>`;
+        });
+
+        html += `<div class="day-cell ${isWeekend?'weekend':''}"><span class="day-number">${day}</span>${eventHtml}</div>`;
+    }
+
+    // Дни следующего месяца
+    const totalCells = startDayOfWeek+daysInMonth;
+    const remainingCells = (7-(totalCells%7))%7;
+    for(let i=1;i<=remainingCells;i++){
+        html += `<div class="day-cell other-month"><span class="day-number">${i}</span></div>`;
+    }
+
+    html += '</div>';
+    document.getElementById('calendarContainer').innerHTML = html;
+}
+
+// === НАВИГАЦИЯ ===
+document.getElementById('prevMonth').onclick = ()=>{
+    currentMonth--;
+    if(currentMonth<0){ currentMonth=11; currentYear--; }
     renderCalendar();
-}
+};
+document.getElementById('nextMonth').onclick = ()=>{
+    currentMonth++;
+    if(currentMonth>11){ currentMonth=0; currentYear++; }
+    renderCalendar();
+};
 
-function renderCalendar(){
-    const container=document.getElementById('calendar');
-    const now=new Date();
-    const month=now.getMonth();
-    const year=now.getFullYear();
-    const daysInMonth=new Date(year,month+1,0).getDate();
-    container.innerHTML='';
-    for(let d=1;d<=daysInMonth;d++){
-        const dayDiv=document.createElement('div');
-        dayDiv.className='day';
-        dayDiv.innerHTML=`${d}`;
-        const evs=events.filter(e=>e.day===d && e.month===month && e.year===year);
-        evs.forEach((ev,i)=>{
-            const eDiv=document.createElement('div');
-            eDiv.className='event';
-            eDiv.innerText=ev.name;
-            eDiv.onclick=()=>openModal(ev);
-            dayDiv.appendChild(eDiv);
-        });
-        container.appendChild(dayDiv);
-    }
-}
-
-// попап
-const modal=document.getElementById('modal');
-document.getElementById('close').onclick=()=>{modal.style.display='none';};
-function openModal(ev){
-    currentEvent=ev;
-    document.getElementById('modalTitle').innerText=ev.name;
-    document.getElementById('modalDate').innerText=`${String(ev.day).padStart(2,'0')}.${String(ev.month+1).padStart(2,'0')}.${ev.year}`;
-    document.getElementById('modalTime').innerText=ev.time;
-    document.getElementById('modalLocation').innerText=ev.location;
-    document.getElementById('modalPrice').innerText=ev.price;
-    document.getElementById('modalStatus').innerText=ev.status;
-    document.getElementById('telegram').value='';
-    document.getElementById('msg').innerText='';
-    modal.style.display='flex';
-}
-
-// отправка Telegram
-document.getElementById('send').onclick=async()=>{
-    const tg=document.getElementById('telegram').value.trim();
-    if(!tg.startsWith('@')) {document.getElementById('msg').innerText='Введите корректный Telegram'; return;}
-    const payload={ date:`${String(currentEvent.day).padStart(2,'0')}.${String(currentEvent.month+1).padStart(2,'0')}`, eventName:currentEvent.name, telegram:tg };
-    document.getElementById('msg').innerText='Отправка...';
-    try{
-        const res=await fetch(WEB_APP_URL,{method:'POST',body:JSON.stringify(payload),headers:{'Content-Type':'text/plain'}});
-        const data=await res.json();
-        if(data.success){document.getElementById('msg').innerText='✅ Вы записаны!'; setTimeout(()=>modal.style.display='none',1000);}
-        else{document.getElementById('msg').innerText='❌ Ошибка: '+(data.error||'');}
-    }catch(err){document.getElementById('msg').innerText='❌ Ошибка: '+err.message;}
-}
-
-// старт
+// === СТАРТ ===
 loadEvents();
+
 </script>
 </body>
 </html>
